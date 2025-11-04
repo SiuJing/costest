@@ -1,0 +1,124 @@
+<!-- templates/estimator/data_status.html -->
+{% extends "estimator/base_dashboard.html" %}
+{% load humanize %}
+
+{% block page_title %}Data Status & Import{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Data Status & Import</h2>
+        <div>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="{% url 'force_import_data' %}" class="btn btn-warning">Force Re-import All Data</a>
+        </div>
+    </div>
+
+    <!-- Data Summary -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5>Material Prices</h5>
+                    <h3 class="text-primary">{{ material_count|intcomma }}</h3>
+                    <p>Total records in database</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5>Labour Rates</h5>
+                    <h3 class="text-success">{{ labour_count|intcomma }}</h3>
+                    <p>Total records in database</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quarters Available -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Available Quarters in Database</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Material Prices</h6>
+                    <ul>
+                        {% for quarter in material_quarters %}
+                        <li>{{ quarter.quarter }} {{ quarter.year }}</li>
+                        {% empty %}
+                        <li class="text-muted">No material data available</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Labour Rates</h6>
+                    <ul>
+                        {% for quarter in labour_quarters %}
+                        <li>{{ quarter.quarter }} {{ quarter.year }}</li>
+                        {% empty %}
+                        <li class="text-muted">No labour data available</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Files Detected -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">Excel Files in Data Directory</h5>
+        </div>
+        <div class="card-body">
+            {% if new_files %}
+            <p>The following Excel files were found in the <code>data/</code> directory:</p>
+            <ul>
+                {% for file in new_files %}
+                <li>{{ file }}</li>
+                {% endfor %}
+            </ul>
+            <div class="alert alert-info">
+                <strong>Note:</strong> The system automatically imports new files. If files aren't appearing in the database above, click "Force Re-import All Data".
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <div class="text-muted mb-3">
+                    <i class="fas fa-folder-open fa-3x"></i>
+                </div>
+                <h4>No Excel Files Found</h4>
+                <p class="text-muted">Place your CIDB Excel files in the <code>data/</code> directory.</p>
+                <p>Files should be named with "Materials" or "Labour" in the filename.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Forecast Requirements -->
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Forecast Requirements</h5>
+        </div>
+        <div class="card-body">
+            <h6>To generate forecasts, you need:</h6>
+            <ol>
+                <li><strong>At least 2 quarters</strong> of historical data for each material</li>
+                <li>Material descriptions in your project that <strong>match</strong> the CIDB database</li>
+                <li>Data files placed in the <code>data/</code> directory</li>
+            </ol>
+            
+            <div class="alert alert-success">
+                <strong>Current Status:</strong> 
+                You have <strong>{{ total_quarters }} quarters</strong> of data available.
+                {% if total_quarters >= 2 %}
+                ✅ Sufficient for forecasting!
+                {% else %}
+                ❌ Need more data for forecasting.
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

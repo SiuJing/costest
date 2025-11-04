@@ -1,0 +1,33 @@
+<!-- templates/estimator/profile.html -->
+{% extends "estimator/base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4 text-center">
+            <img src="{{ profile.avatar.url|default:'/static/img/avatar.png' }}" 
+                 class="rounded-circle" width="150" height="150">
+            <form method="post" enctype="multipart/form-data" class="mt-3">
+                {% csrf_token %}
+                <input type="file" name="avatar" accept="image/*" class="form-control">
+                <button type="submit" class="btn btn-primary mt-2">Update Avatar</button>
+            </form>
+        </div>
+        <div class="col-md-8">
+            <h3>{{ user.get_full_name|default:user.username }}</h3>
+            <p><strong>Role:</strong> {{ profile.get_role_display }}</p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label>Phone</label>
+                    <input type="text" name="phone" class="form-control" value="{{ profile.phone }}">
+                </div>
+                <div class="mb-3">
+                    <label>Company</label>
+                    <input type="text" name="company" class="form-control" value="{{ profile.company }}">
+                </div>
+                <button type="submit" class="btn btn-success">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

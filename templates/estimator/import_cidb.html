@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Import CIDB Data{% endblock %}
+{% block content %}
+<h2>Import CIDB Excel Files</h2>
+<p>Place all <code>*Materials*.xlsx</code> and <code>*Labour*.xlsx</code> files inside the <code>data/</code> folder.</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary">Import All CIDB Files</button>
+</form>
+
+<a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+{% endblock %}

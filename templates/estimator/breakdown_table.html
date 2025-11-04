@@ -1,0 +1,53 @@
+<!-- templates/estimator/breakdown_table.html -->
+{% load humanize extra_filters %}
+<div class="table-responsive">
+    <table class="table table-striped mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Item</th>
+                <th>Description</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Rate</th>
+                <th class="text-end">Your Cost</th>
+                <th class="text-end">CIDB Cost</th>
+                <th class="text-end">Diff</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in breakdown %}
+            <tr>
+                <td>{{ row.item.section }}</td>
+                <td>{{ row.item.description }}</td>
+                <td class="text-end">{{ row.item.quantity }}</td>
+                <td class="text-end">{{ row.item.rate|floatformat:2 }}</td>
+                <td class="text-end">
+                    {% if use_original %}
+                    {{ row.original_est_cost|floatformat:2|intcomma }}
+                    {% else %}
+                    {{ row.est_cost|floatformat:2|intcomma }}
+                    {% endif %}
+                </td>
+                <td class="text-end">{{ row.cidb_cost|floatformat:2|intcomma }}</td>
+                <td class="text-end {% if use_original %}{% if row.original_est_cost > row.cidb_cost %}text-danger{% else %}text-success{% endif %}{% else %}{% if row.est_cost > row.cidb_cost %}text-danger{% else %}text-success{% endif %}{% endif %}">
+                    {% if use_original %}
+                    {% if row.original_est_cost > row.cidb_cost %}+{% endif %}
+                    {{ row.original_est_cost|subtract:row.cidb_cost|floatformat:2|intcomma }}
+                    {% else %}
+                    {% if row.est_cost > row.cidb_cost %}+{% endif %}
+                    {{ row.est_cost|subtract:row.cidb_cost|floatformat:2|intcomma }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            <tr class="table-info fw-bold">
+                <td colspan="4" class="text-end">TOTAL</td>
+                <td class="text-end">{{ total_est|floatformat:2|intcomma }}</td>
+                <td class="text-end">{{ total_cidb|floatformat:2|intcomma }}</td>
+                <td class="text-end {% if total_variance > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {% if total_variance > 0 %}+{% endif %}
+                    {{ total_variance|floatformat:2|intcomma }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

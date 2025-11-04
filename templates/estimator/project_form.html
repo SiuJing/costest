@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3 class="mb-3">{{ project.name }} <small class="text-muted">({{ project.uploaded_by }})</small></h3>
+    <a href="#" class="btn btn-sm btn-outline-secondary mb-3">History</a>
+
+    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        <div class="row g-3">
+            <!-- Name -->
+            <div class="col-12">
+                <label class="form-label fw-bold">Name:</label>
+                {{ form.name }}
+                <div class="invalid-feedback">Please enter a project name.</div>
+            </div>
+
+            <!-- Uploaded by (read-only) -->
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Uploaded by:</label>
+                <input type="text" class="form-control" value="{{ project.uploaded_by }} ({{ project.uploaded_by.username }})" readonly>
+            </div>
+
+            <!-- File -->
+            <div class="col-md-6">
+                <label class="form-label fw-bold">File:</label>
+                <div class="input-group">
+                    <span class="input-group-text">Currently:</span>
+                    <input type="text" class="form-control" value="{{ project.file.name }}" readonly>
+                </div>
+                <div class="mt-2">
+                    <label class="form-label">Change:</label>
+                    {{ form.file }}
+                </div>
+            </div>
+
+            <!-- Duration months -->
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Duration months:</label>
+                {{ form.duration_months }}
+            </div>
+
+            <!-- Start date -->
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Start date:</label>
+                <div class="input-group">
+                    {{ form.start_date }}
+                    <span class="input-group-text">Today</span>
+                </div>
+                <small class="text-muted">Note: You are 8 hours ahead of server time.</small>
+            </div>
+
+            <!-- End date -->
+            <div class="col-md-4">
+                <label class="form-label fw-bold">End date:</label>
+                <div class="input-group">
+                    {{ form.end_date }}
+                    <span class="input-group-text">Today</span>
+                </div>
+                <small class="text-muted">Note: You are 8 hours ahead of server time.</small>
+            </div>
+
+            <!-- Duration days (auto) -->
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Duration days:</label>
+                <input type="text" id="id_duration_days" class="form-control" readonly>
+            </div>
+
+            <!-- Notes -->
+            <div class="col-12">
+                <label class="form-label fw-bold">Notes:</label>
+                {{ form.notes }}
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Auto-calculate duration days
+    document.addEventListener('DOMContentLoaded', function () {
+        const start = document.querySelector('#id_start_date');
+        const end = document.querySelector('#id_end_date');
+        const days = document.querySelector('#id_duration_days');
+
+        function calc() {
+            if (start.value && end.value) {
+                const diff = (new Date(end.value) - new Date(start.value)) / (1000*60*60*24);
+                days.value = Math.round(diff);
+            }
+        }
+        start.addEventListener('change', calc);
+        end.addEventListener('change', calc);
+        calc();
+    });
+</script>
+{% endblock %}

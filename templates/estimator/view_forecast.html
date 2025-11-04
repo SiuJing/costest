@@ -1,0 +1,400 @@
+<!-- templates/estimator/view_forecast.html -->
+{% extends "estimator/base_dashboard.html" %}
+{% load humanize %}
+
+{% block page_title %}Forecast Results - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Material Price Forecast</h2>
+        <div>
+            <a href="{% url 'project_detail' project.pk %}" class="btn btn-secondary">Back to Project</a>
+            <a href="{% url 'export_forecast' %}" class="btn btn-success">Export to Excel</a>
+        </div>
+    </div>
+
+    <!-- Model Tabs -->
+    <ul class="nav nav-tabs mb-4" id="forecastTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="linear-tab" data-bs-toggle="tab" data-bs-target="#linear" type="button" role="tab">
+                Linear Regression <span class="badge bg-primary">{{ linear_count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="randomforest-tab" data-bs-toggle="tab" data-bs-target="#randomforest" type="button" role="tab">
+                Random Forest <span class="badge bg-warning">{{ rf_count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button" role="tab">
+                Data Analysis <span class="badge bg-info">{{ forecast_analysis|length }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="forecastTabsContent">
+        <!-- Linear Regression Tab -->
+        <div class="tab-pane fade show active" id="linear" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Linear Regression Forecasts</h5>
+                </div>
+                <div class="card-body">
+                    {% if linear_forecast_data %}
+                    <div class="alert alert-info">
+                        <strong>Linear Regression Summary:</strong> {{ linear_count }} predictions for {{ linear_forecast_data.0.forecast_quarter }}. 
+                        This model works best for linear trends and provides interpretable results.
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Material</th>
+                                    <th>Current Quarter</th>
+                                    <th class="text-end">Current Price (RM)</th>
+                                    <th>Forecast Quarter</th>
+                                    <th class="text-end">Forecast Price (RM)</th>
+                                    <th class="text-end">Change %</th>
+                                    <th>Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in linear_forecast_data %}
+                                <tr>
+                                    <td><strong>{{ item.material }}</strong></td>
+                                    <td>{{ item.current_quarter }}</td>
+                                    <td class="text-end">{{ item.current_price|default:"N/A"|floatformat:2 }}</td>
+                                    <td>{{ item.forecast_quarter }}</td>
+                                    <td class="text-end">{{ item.forecast_price|floatformat:2 }}</td>
+                                    <td class="text-end {% if item.change_percent > 0 %}text-danger{% elif item.change_percent < 0 %}text-success{% endif %}">
+                                        {% if item.change_percent %}
+                                            {{ item.change_percent|floatformat:1 }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.change_percent %}
+                                            {% if item.change_percent > 0 %}
+                                                <span class="text-danger">📈 Increase</span>
+                                            {% elif item.change_percent < 0 %}
+                                                <span class="text-success">📉 Decrease</span>
+                                            {% else %}
+                                                <span class="text-muted">➡️ Stable</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Linear Regression Summary -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>Average Change</h5>
+                                    <h3 class="text-info">
+                                        {% with changes=linear_forecast_data|dictsort:"change_percent" %}
+                                        {% if changes and changes.0.change_percent %}
+                                            {{ changes.0.change_percent|floatformat:1 }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                        {% endwith %}
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>Next Quarter</h5>
+                                    <h3 class="text-primary">{{ linear_forecast_data.0.forecast_quarter }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="text-muted mb-3">
+                            <i class="fas fa-chart-line fa-4x"></i>
+                        </div>
+                        <h4>No Linear Regression Forecasts</h4>
+                        <p class="text-muted">Run the forecast first to see Linear Regression predictions.</p>
+                        <a href="{% url 'run_forecast_view' project.pk %}" class="btn btn-primary">Run Forecast Now</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Random Forest Tab -->
+        <div class="tab-pane fade" id="randomforest" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Random Forest Forecasts</h5>
+                </div>
+                <div class="card-body">
+                    {% if rf_forecast_data %}
+                    <div class="alert alert-warning">
+                        <strong>Random Forest Summary:</strong> {{ rf_count }} predictions for {{ rf_forecast_data.0.forecast_quarter }}. 
+                        This model handles complex patterns and non-linear relationships better.
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Material</th>
+                                    <th>Current Quarter</th>
+                                    <th class="text-end">Current Price (RM)</th>
+                                    <th>Forecast Quarter</th>
+                                    <th class="text-end">Forecast Price (RM)</th>
+                                    <th class="text-end">Change %</th>
+                                    <th>Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in rf_forecast_data %}
+                                <tr>
+                                    <td><strong>{{ item.material }}</strong></td>
+                                    <td>{{ item.current_quarter }}</td>
+                                    <td class="text-end">{{ item.current_price|default:"N/A"|floatformat:2 }}</td>
+                                    <td>{{ item.forecast_quarter }}</td>
+                                    <td class="text-end">{{ item.forecast_price|floatformat:2 }}</td>
+                                    <td class="text-end {% if item.change_percent > 0 %}text-danger{% elif item.change_percent < 0 %}text-success{% endif %}">
+                                        {% if item.change_percent %}
+                                            {{ item.change_percent|floatformat:1 }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.change_percent %}
+                                            {% if item.change_percent > 0 %}
+                                                <span class="text-danger">📈 Increase</span>
+                                            {% elif item.change_percent < 0 %}
+                                                <span class="text-success">📉 Decrease</span>
+                                            {% else %}
+                                                <span class="text-muted">➡️ Stable</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Random Forest Summary -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>Average Change</h5>
+                                    <h3 class="text-warning">
+                                        {% with changes=rf_forecast_data|dictsort:"change_percent" %}
+                                        {% if changes and changes.0.change_percent %}
+                                            {{ changes.0.change_percent|floatformat:1 }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                        {% endwith %}
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>Next Quarter</h5>
+                                    <h3 class="text-primary">{{ rf_forecast_data.0.forecast_quarter }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="text-muted mb-3">
+                            <i class="fas fa-tree fa-4x"></i>
+                        </div>
+                        <h4>No Random Forest Forecasts</h4>
+                        <p class="text-muted">Run the forecast first to see Random Forest predictions.</p>
+                        <a href="{% url 'run_forecast_view' project.pk %}" class="btn btn-primary">Run Forecast Now</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Analysis Tab -->
+        <div class="tab-pane fade" id="analysis" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Forecast Data Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Data Requirements:</strong> Each item needs at least 2 quarters of historical data for forecasting.
+                        Current database has <strong>{{ total_quarters }} quarters</strong> of data.
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Material/Labour</th>
+                                    <th>Section</th>
+                                    <th class="text-center">Material Records</th>
+                                    <th class="text-center">Labour Records</th>
+                                    <th class="text-center">Total Records</th>
+                                    <th class="text-center">Data Source</th>
+                                    <th class="text-center">Status</th>
+                                    <th>Forecastability</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in forecast_analysis %}
+                                <tr>
+                                    <td>{{ item.material }}</td>
+                                    <td>{{ item.section }}</td>
+                                    <td class="text-center">{{ item.material_records }}</td>
+                                    <td class="text-center">{{ item.labour_records }}</td>
+                                    <td class="text-center">{{ item.historical_records }}</td>
+                                    <td class="text-center">
+                                        {% if item.material_records > item.labour_records %}
+                                            <span class="badge bg-primary">Material</span>
+                                        {% elif item.labour_records > item.material_records %}
+                                            <span class="badge bg-warning text-dark">Labour</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">None</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ item.status|safe }}</td>
+                                    <td>
+                                        {% if item.can_forecast %}
+                                        <span class="badge bg-success">Ready for Forecast</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Need More Data</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">No project items to analyze.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Summary Statistics -->
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>Total Items</h5>
+                                    <h3 class="text-primary">{{ forecast_analysis|length }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>Ready for Forecast</h5>
+                                    <h3 class="text-success">
+                                        {{ forecast_analysis|length|add:"0" }}  {# This will be calculated properly #}
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>Need More Data</h5>
+                                    <h3 class="text-danger">
+                                        {{ forecast_analysis|length|add:"0" }}  {# This will be calculated properly #}
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>Data Quarters</h5>
+                                    <h3 class="text-info">{{ total_quarters }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Model Comparison -->
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Model Comparison Guide</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">Linear Regression</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled">
+                                <li>✅ <strong>Best for:</strong> Linear trends and simple patterns</li>
+                                <li>✅ <strong>Speed:</strong> Faster computation</li>
+                                <li>✅ <strong>Interpretability:</strong> Easy to understand results</li>
+                                <li>❌ <strong>Limitation:</strong> May not capture complex patterns</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">Random Forest</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled">
+                                <li>✅ <strong>Best for:</strong> Complex, non-linear patterns</li>
+                                <li>✅ <strong>Robustness:</strong> Handles outliers well</li>
+                                <li>✅ <strong>Accuracy:</strong> Often more accurate for complex data</li>
+                                <li>❌ <strong>Limitation:</strong> Slower and harder to interpret</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="alert alert-warning mt-3">
+                <strong>Note:</strong> These forecasts are based on historical CIDB data and should be used as guidance only. 
+                Compare both models and use the one that aligns better with your market knowledge. Actual market prices may vary.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Activate the first tab by default
+    var firstTab = new bootstrap.Tab(document.getElementById('linear-tab'));
+    firstTab.show();
+});
+</script>
+{% endblock %}

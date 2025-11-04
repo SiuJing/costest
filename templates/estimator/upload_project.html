@@ -1,0 +1,23 @@
+<!-- templates/estimator/upload_project.html -->
+{% extends "estimator/base_dashboard.html" %}
+{% block page_title %}Upload New Project{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">New Project Details</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <table class="table table-bordered">
+                    {{ form.as_table }}
+                </table>
+                <button type="submit" class="btn btn-primary">Upload Project</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
