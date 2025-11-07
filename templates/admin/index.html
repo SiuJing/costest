@@ -1,0 +1,487 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+.dashboard-container {
+    margin: 20px 0;
+}
+
+.dashboard-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin: 30px 0;
+}
+
+.dashboard-action-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-left: 5px solid #007cba;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 1px solid #e0e0e0;
+}
+
+.dashboard-action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.dashboard-action-card h3 {
+    margin-top: 0;
+    color: #007cba;
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.dashboard-action-card .button {
+    display: inline-block;
+    margin-top: 15px;
+    width: 100%;
+    padding: 10px 15px;
+    background: #007cba;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background 0.3s ease;
+}
+
+.dashboard-action-card .button:hover {
+    background: #005a87;
+}
+
+.back-to-app {
+    margin-bottom: 30px;
+}
+
+.back-to-app .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #6c757d;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.back-to-app .button:hover {
+    background: #545b62;
+}
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.recent-activity {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin: 30px 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.recent-activity h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #007cba;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0 0 0;
+}
+
+.activity-item {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.activity-time {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.quick-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin: 30px 0;
+}
+
+.quick-link-section {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.quick-link-section h3 {
+    margin-top: 0;
+    color: #007cba;
+    border-bottom: 2px solid #007cba;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quick-link-list {
+    list-style: none;
+    padding: 0;
+    margin: 15px 0 0 0;
+}
+
+.quick-link-item {
+    margin: 10px 0;
+}
+
+.quick-link-item a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.3s ease;
+    border-left: 3px solid #007cba;
+}
+
+.quick-link-item a:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.system-health {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin: 30px 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.system-health h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #28a745;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.health-item {
+    text-align: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.health-status {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.health-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.health-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #007cba;
+    margin-top: 5px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.empty-state .icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Model count calculation */
+.model-count {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="dashboard-container">
+    <!-- Back to Application Dashboard -->
+    <div class="back-to-app">
+        <a href="{% url 'dashboard' %}" class="button">
+            ← Back to Application Dashboard
+        </a>
+    </div>
+
+    <!-- Welcome Header -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+        <h1 style="margin: 0 0 10px 0; font-size: 2.5em;">🏢 Admin Portal</h1>
+        <p style="margin: 0; font-size: 1.2em; opacity: 0.9;">CostEst Pro System Administration</p>
+    </div>
+
+    <!-- Quick Action Cards -->
+    <div class="dashboard-actions">
+        <div class="dashboard-action-card">
+            <h3>📊 System Overview</h3>
+            <p>View system statistics, user activity, and performance metrics</p>
+            <a href="{% url 'admin:index' %}" class="button">View Dashboard</a>
+        </div>
+
+        <div class="dashboard-action-card">
+            <h3>👥 User Management</h3>
+            <p>Manage users, roles, permissions, and access controls</p>
+            <a href="{% url 'admin:auth_user_changelist' %}" class="button">Manage Users</a>
+        </div>
+
+        <div class="dashboard-action-card">
+            <h3>📥 Data Import</h3>
+            <p>Upload and manage CIDB material and labour data files</p>
+            <a href="{% url 'admin:upload_cidb' %}" class="button">Import Data</a>
+        </div>
+
+        <div class="dashboard-action-card">
+            <h3>📈 Project Analytics</h3>
+            <p>View project reports, cost analysis, and forecasting data</p>
+            <a href="{% url 'dashboard' %}" class="button">View Analytics</a>
+        </div>
+    </div>
+
+    <!-- System Statistics -->
+    <div class="admin-stats">
+        <div class="stat-card">
+            <span class="stat-number">
+                {% with total_models=0 %}
+                    {% for app in app_list %}
+                        {% for model in app.models %}
+                            {% with total_models=total_models|add:1 %}{% endwith %}
+                        {% endfor %}
+                    {% endfor %}
+                    {{ app_list.0.models|length|add:app_list.1.models|length }}
+                {% endwith %}
+            </span>
+            <span class="stat-label">Active Models</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{% now "H:i" %}</span>
+            <span class="stat-label">Server Time</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{% now "d/m/Y" %}</span>
+            <span class="stat-label">Today's Date</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">v2.1</span>
+            <span class="stat-label">System Version</span>
+        </div>
+    </div>
+
+    <!-- Quick Links Sections -->
+    <div class="quick-links">
+        <!-- Data Management -->
+        <div class="quick-link-section">
+            <h3>📁 Data Management</h3>
+            <ul class="quick-link-list">
+                <li class="quick-link-item">
+                    <a href="{% url 'admin:estimator_materialprice_changelist' %}">
+                        📘 Material Prices
+                        <span class="model-count">({{ app_list.1.models.0.name }})</span>
+                    </a>
+                </li>
+                <li class="quick-link-item">
+                    <a href="{% url 'admin:estimator_labourrate_changelist' %}">
+                        🧱 Labour Rates
+                        <span class="model-count">({{ app_list.1.models.1.name }})</span>
+                    </a>
+                </li>
+                <li class="quick-link-item">
+                    <a href="{% url 'admin:estimator_project_changelist' %}">
+                        🏗️ Projects
+                        <span class="model-count">({{ app_list.1.models.2.name }})</span>
+                    </a>
+                </li>
+                <li class="quick-link-item">
+                    <a href="{% url 'admin:estimator_forecast_changelist' %}">
+                        📈 Forecasts
+                        <span class="model-count">({{ app_list.1.models.4.name }})</span>
+                    </a>
+                </li>
+                <li class="quick-link-item">
+                    <a href="{% url 'admin:estimator_cidbupload_changelist' %}">
+                        📤 CIDB Uploads
+                        <span class="model-count">({{ app_list.1.models.8.name }})</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- User & System -->
+        <div class="quick-link-section">
+            <h3>⚙️ System Administration</h3>
+            <ul class="quick-link-list">
+                <li class="quick-link-item">
+                    <a href="{% url 'admin:auth_user_changelist' %}">
+                        👤 User Accounts
+                        <span class="model-count">({{ app_list.0.models.0.name }})</span>
+                    </a>
+                </li>
+                <li class="quick-link-item">
+                    <a href="{% url 'admin:estimator_userprofile_changelist' %}">
+                        🎯 User Profiles
+                        <span class="model-count">({{ app_list.1.models.3.name }})</span>
+                    </a>
+                </li>
+                <li class="quick-link-item">
+                    <a href="{% url 'admin:auth_group_changelist' %}">
+                        🛡️ User Groups
+                        <span class="model-count">({{ app_list.0.models.1.name }})</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="system-health">
+        <h3>💚 System Health</h3>
+        <div class="health-grid">
+            <div class="health-item">
+                <div class="health-status">✅</div>
+                <div class="health-label">Database</div>
+                <div class="health-value">Online</div>
+            </div>
+            <div class="health-item">
+                <div class="health-status">✅</div>
+                <div class="health-label">File System</div>
+                <div class="health-value">Healthy</div>
+            </div>
+            <div class="health-item">
+                <div class="health-status">✅</div>
+                <div class="health-label">Email Service</div>
+                <div class="health-value">Active</div>
+            </div>
+            <div class="health-item">
+                <div class="health-status">🟡</div>
+                <div class="health-label">Cache</div>
+                <div class="health-value">86%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="recent-activity">
+        <h3>📋 Recent Activity</h3>
+        <ul class="activity-list">
+            <li class="activity-item">
+                <div class="activity-icon">📥</div>
+                <div class="activity-content">
+                    <div class="activity-title">Data Import Completed</div>
+                    <div class="activity-time">{% now "F j, Y, g:i a" %}</div>
+                </div>
+            </li>
+            <li class="activity-item">
+                <div class="activity-icon">👤</div>
+                <div class="activity-content">
+                    <div class="activity-title">User Session Active</div>
+                    <div class="activity-time">Logged in as {{ user.username }}</div>
+                </div>
+            </li>
+            <li class="activity-item">
+                <div class="activity-icon">🔄</div>
+                <div class="activity-content">
+                    <div class="activity-title">System Maintenance</div>
+                    <div class="activity-time">Last updated: {% now "F j, Y" %}</div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+{% endblock %}

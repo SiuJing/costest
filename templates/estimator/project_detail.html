@@ -1,4 +1,3 @@
-<!-- templates/estimator/project_detail.html -->
 {% extends "estimator/base_dashboard.html" %}
 {% load humanize extra_filters %}
 
@@ -52,7 +51,6 @@
         <a href="{% url 'project_edit' project.pk %}" class="btn btn-sm btn-outline-info">Edit Details</a>
         <a href="{% url 'run_forecast_view' project.pk %}" class="btn btn-sm btn-success">Run Forecast</a>
         
-        <!-- Check if forecasts exist and show view link -->
         {% with forecast_count=project.forecast_set.count %}
             {% if forecast_count > 0 %}
                 <a href="{% url 'view_forecast' project.pk %}" class="btn btn-sm btn-warning">

@@ -1,4 +1,3 @@
-# estimator/templatetags/extra_filters.py
 from django import template
 from decimal import Decimal
 
@@ -14,7 +13,7 @@ def abs_filter(value):
     try:
         return abs(Decimal(value))
     except (TypeError, ValueError, decimal.InvalidOperation):
-        return value  # fallback
+        return value 
 
 @register.filter
 def subtract(value, arg):

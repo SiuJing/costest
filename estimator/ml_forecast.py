@@ -1,4 +1,3 @@
-# estimator/ml_forecast.py
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
@@ -14,7 +13,6 @@ def run_forecast(project_id):
     items = ProjectItem.objects.filter(project=project)
     forecasts = []
 
-    # Get the next quarter/year from the latest data
     material_next_q, material_next_y = MaterialPrice.next_quarter()
     labour_next_q, labour_next_y = LabourRate.next_quarter()
     
@@ -22,7 +20,6 @@ def run_forecast(project_id):
     print(f"🔮 Forecasting labour for {labour_next_q} {labour_next_y}")
     print(f"📋 Processing {items.count()} project items")
 
-    # Delete existing forecasts for this project
     Forecast.objects.filter(project=project).delete()
 
     materials_processed = 0
@@ -31,11 +28,9 @@ def run_forecast(project_id):
     for item in items:
         print(f"🔍 Processing: {item.description} (Section: {item.section})")
         
-        # Try to find in Material prices first
         material_history = None
         labour_history = None
         
-        # Material search strategies
         material_strategies = [
             lambda: MaterialPrice.objects.filter(
                 section=item.section,
@@ -52,7 +47,6 @@ def run_forecast(project_id):
             ).order_by('year', 'quarter'),
         ]
         
-        # Labour search strategies  
         labour_strategies = [
             lambda: LabourRate.objects.filter(
                 section=item.section,
@@ -69,7 +63,6 @@ def run_forecast(project_id):
             ).order_by('year', 'quarter'),
         ]
         
-        # DEBUG: Check what's available in both models
         material_exact = MaterialPrice.objects.filter(
             section=item.section,
             description__iexact=item.description
@@ -82,7 +75,6 @@ def run_forecast(project_id):
         print(f"   🔎 Material exact match: {material_exact.count()} records")
         print(f"   🔎 Labour exact match: {labour_exact.count()} records")
         
-        # Try material strategies
         for i, strategy in enumerate(material_strategies):
             potential_history = strategy()
             if potential_history.count() >= 2:
@@ -90,7 +82,6 @@ def run_forecast(project_id):
                 print(f"   ✅ Found {material_history.count()} MATERIAL records using strategy {i+1}")
                 break
         
-        # Try labour strategies if no material found
         if not material_history:
             for i, strategy in enumerate(labour_strategies):
                 potential_history = strategy()
@@ -101,24 +92,20 @@ def run_forecast(project_id):
         
         if not material_history and not labour_history:
             print(f"   ❌ No historical data found for: {item.description}")
-            # DEBUG: Show what we did find
             material_any = MaterialPrice.objects.filter(description__icontains=item.description)
             labour_any = LabourRate.objects.filter(description__icontains=item.description)
             print(f"   🔍 Material any match: {material_any.count()} records")
             print(f"   🔍 Labour any match: {labour_any.count()} records")
             continue
 
-        # Use whichever history we found
         history = material_history or labour_history
         forecast_type = 'material' if material_history else 'labour'
         next_q = material_next_q if material_history else labour_next_q
         next_y = material_next_y if material_history else labour_next_y
 
         try:
-            # Prepare data for ML
             df = pd.DataFrame(list(history.values('quarter', 'year', 'rate')))
             
-            # Create a simple time series
             df = df.sort_values(['year', 'quarter'])
             df['time_index'] = range(len(df))
             
@@ -185,7 +172,6 @@ def run_forecast(project_id):
             print(f"   ❌ Error forecasting {item.description}: {str(e)}")
             continue
 
-    # Save all forecasts
     if forecasts:
         Forecast.objects.bulk_create(forecasts)
         print(f"🎯 Created {len(forecasts)} forecasts for {materials_processed} materials and {labour_processed} labour items")

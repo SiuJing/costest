@@ -1,13 +1,38 @@
-# Ignore Python virtual environments
+# === Python / Django ignores ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
 venv/
 venv312/
+env/
 
-# Ignore common Python cache files
-__pycache__/
-*.pyc
-
-# Ignore VS Code settings
+# VS Code settings
 .vscode/
 
-# Ignore environment files
+# Environment variables
 .env
+
+# === Django project files ===
+db.sqlite3
+media/
+staticfiles/
+static/
+
+# === OS-specific ===
+.DS_Store
+Thumbs.db
+
+# === Installer / Package cache ===
+*.egg-info/
+*.egg
+dist/
+build/

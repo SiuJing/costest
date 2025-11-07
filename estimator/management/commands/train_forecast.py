@@ -1,4 +1,3 @@
-# estimator/management/commands/train_forecast.py
 import pandas as pd
 from django.core.management.base import BaseCommand
 from estimator.models import MaterialPrice, Forecast

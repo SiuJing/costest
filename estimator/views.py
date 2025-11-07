@@ -1,11 +1,10 @@
-# estimator/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.core.management import call_command
 from django.db import transaction
 from django.db.models import Sum, F, Q
 from django.contrib.humanize.templatetags.humanize import intcomma
-from estimator.models import Project, Forecast, InflationRate, ProjectItem, ActualItem
+from estimator.models import Project, Forecast, InflationRate, ProjectItem, ActualItem, UserProfile
 from django.contrib.auth.models import User
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
@@ -27,7 +26,7 @@ import json
 import re
 from io import BytesIO
 from django.core.paginator import Paginator
-
+from pathlib import Path
 
 from .models import (
     UserProfile, Project, ProjectItem, MaterialPrice, Forecast, ActualItem, LabourRate
@@ -79,7 +78,12 @@ def logout_user(request):
 # ----------------------------------------------------------------------
 @login_required
 def profile(request):
-    profile = request.user.userprofile
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    if created:
+        if request.user.is_staff and not profile.role:
+            profile.role = 'admin'
+            profile.save()
+    
     if request.method == 'POST':
         profile.phone = request.POST.get('phone', '')
         profile.company = request.POST.get('company', '')
@@ -92,12 +96,29 @@ def profile(request):
 
 
 # ------------------------------------------------------------------
-# DASHBOARD - FIXED WITH 3-BAR CHART FOR COST TYPES
+# DASHBOARD - FIXED WITH SAFE PROFILE ACCESS
 # ------------------------------------------------------------------
 @login_required
 def dashboard(request):
-    profile = request.user.userprofile
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    if created:
+        if request.user.is_staff and not profile.role:
+            profile.role = 'admin'
+            profile.save()
+    
     role = profile.role
+    
+    template_map = {
+        'admin': 'estimator/dashboard_admin.html',
+        'pm': 'estimator/dashboard_pm.html', 
+        'qs': 'estimator/dashboard_user.html',
+        'contractor': 'estimator/dashboard_user.html',
+        'developer': 'estimator/dashboard_user.html',
+    }
+    
+    print(f"DEBUG: User {request.user.username} has role: {role}")
+    print(f"DEBUG: User is staff: {request.user.is_staff}")
+    print(f"DEBUG: Template being used: {template_map.get(role, 'estimator/dashboard_user.html')}")
 
     project_filter = request.GET.get('project', 'all')
 
@@ -114,22 +135,18 @@ def dashboard(request):
             Q(name__icontains=search) | Q(estimate_items__description__icontains=search)
         ).distinct()
 
-    # Initialize totals
     est_total = Decimal('0')
     cidb_total = Decimal('0')
     actual_total = Decimal('0')
     total_variance = Decimal('0')
     total_projects = display_projects.count()
 
-    # Chart data for 3-bar chart (Estimated, CIDB, Actual)
     chart_labels = ['Cost Comparison']
     chart_est = []
     chart_cidb = []
     chart_actual = []
 
     if project_filter == 'all':
-        # DEFAULT VIEW: Sum of all projects
-        # Calculate totals for all projects
         for project in display_projects:
             est_total += project.estimated_cost or Decimal('0')
             cidb_total += project.cidb_cost or Decimal('0')
@@ -137,13 +154,11 @@ def dashboard(request):
         
         total_variance = est_total - cidb_total
         
-        # For chart - single set of 3 bars showing totals
         chart_est = [float(est_total)]
         chart_cidb = [float(cidb_total)]
         chart_actual = [float(actual_total)]
         
     else:
-        # SINGLE PROJECT VIEW: Show data for specific project
         try:
             selected_project = display_projects.get(pk=project_filter)
             est_total = selected_project.estimated_cost or Decimal('0')
@@ -152,17 +167,14 @@ def dashboard(request):
             total_variance = est_total - cidb_total
             total_projects = 1
 
-            # For chart - single set of 3 bars for this project
             chart_est = [float(est_total)]
             chart_cidb = [float(cidb_total)]
             chart_actual = [float(actual_total)]
             
         except Project.DoesNotExist:
             project_filter = 'all'
-            # Fallback to all projects if invalid project ID
             return redirect('dashboard')
 
-    # Chart data structure for 3-bar chart - FIXED STRUCTURE
     chart_data = {
         'labels': chart_labels,
         'datasets': [
@@ -184,16 +196,15 @@ def dashboard(request):
         ]
     }
 
-    # Debug output
     print(f"Chart data: {chart_data}")
     print(f"Estimated: {chart_est}, CIDB: {chart_cidb}, Actual: {chart_actual}")
 
-    # Pagination for table (5 per page)
     paginator = Paginator(display_projects, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     context = {
+        'profile': profile,
         'projects': page_obj,
         'page_obj': page_obj,
         'total_projects': total_projects,
@@ -211,15 +222,8 @@ def dashboard(request):
     if project_filter != 'all':
         context['selected_project'] = selected_project
 
-    template_map = {
-        'admin': 'estimator/dashboard_pm.html',
-        'pm': 'estimator/dashboard_pm.html',
-        'qs': 'estimator/dashboard_user.html',
-        'contractor': 'estimator/dashboard_user.html',
-        'developer': 'estimator/dashboard_user.html',
-    }
-    return render(request, template_map.get(role, 'estimator/dashboard_user.html'), context)
-
+    template_name = template_map.get(role, 'estimator/dashboard_user.html')
+    return render(request, template_name, context)
 
 # ----------------------------------------------------------------------
 # CIDB IMPORT
@@ -250,15 +254,12 @@ def data_status(request):
     material_count = MaterialPrice.objects.count()
     labour_count = LabourRate.objects.count()
     
-    # Check for new files in data directory
     data_dir = Path('data')
     new_files = []
     if data_dir.exists():
         for file in data_dir.glob('*.xlsx'):
-            # Simple check if file might be new
             new_files.append(file.name)
     
-    # Get unique quarters/years in database
     material_quarters = MaterialPrice.objects.values('quarter', 'year').distinct().order_by('-year', '-quarter')
     labour_quarters = LabourRate.objects.values('quarter', 'year').distinct().order_by('-year', '-quarter')
     
@@ -306,18 +307,15 @@ def upload_project(request):
             project = form.save(commit=False)
             project.uploaded_by = request.user.userprofile
             
-            # Handle date validation and duration calculation
             if project.start_date and project.end_date:
                 if project.end_date < project.start_date:
                     messages.error(request, "End date cannot be before start date.")
                     return render(request, 'estimator/upload_project.html', {'form': form})
-                # Calculate duration_days (will be handled in model save, but we ensure it's positive)
                 delta = project.end_date - project.start_date
                 project.duration_days = max(delta.days, 0)
             
             project.save()
 
-            # Parse BOQ Excel
             try:
                 df = pd.read_excel(request.FILES['file'])
                 total_est = total_cidb = Decimal('0')
@@ -344,7 +342,6 @@ def upload_project(request):
 
                 project.estimated_cost = total_est
                 project.cidb_cost = total_cidb
-                # Set actual_cost to 0 initially instead of copying estimated cost
                 project.actual_cost = Decimal('0')
                 project.save()
                 
@@ -368,7 +365,6 @@ def upload_project(request):
 def project_edit(request, pk):
     project = get_object_or_404(Project, pk=pk)
     
-    # Permission: only uploader or admin/pm
     if request.user.userprofile != project.uploaded_by and request.user.userprofile.role not in ['admin', 'pm']:
         messages.error(request, "You can only edit your own projects.")
         return redirect('dashboard')
@@ -420,7 +416,6 @@ def edit_actuals(request, pk):
     project = get_object_or_404(Project, pk=pk)
     items = ProjectItem.objects.filter(project=project)
 
-    # Build dict: {item_id: ActualItem}
     actuals_qs = ActualItem.objects.filter(project_item__project=project)
     actuals_dict = {a.project_item_id: a for a in actuals_qs}
 
@@ -446,10 +441,9 @@ def edit_actuals(request, pk):
                 }
             )
 
-        # recompute project.actual_cost
         total = Decimal('0')
         for actual in ActualItem.objects.filter(project_item__project=project):
-            actual.save()  # ensure amount_actual updated
+            actual.save()  
             total += actual.amount_actual or 0
 
         project.actual_cost = total
@@ -474,26 +468,21 @@ def project_detail(request, pk):
     project = get_object_or_404(Project, pk=pk)
     items = ProjectItem.objects.filter(project=project).order_by('section')
 
-    # NEW: Inflation handling
     inflation = InflationRate.objects.filter(project=project, applied=True).first()
 
     if request.method == 'POST':
-        # Handle inflation application
         if 'apply_inflation' in request.POST:
             rate = Decimal(request.POST['inflation_rate'])
-            # Remove existing inflation records
             InflationRate.objects.filter(project=project).delete()
-            # Create new inflation record
             InflationRate.objects.create(project=project, rate=rate, applied=True,
                                          applied_at=timezone.now())
-            # Recalculate rates with inflation
             total_est = Decimal('0')
             for item in items:
-                if item.original_rate:  # Use original rate as base
+                if item.original_rate:  
                     new_rate = item.original_rate * (1 + rate/100)
                 else:
                     new_rate = item.rate * (1 + rate/100)
-                    item.original_rate = item.rate  # Store original
+                    item.original_rate = item.rate  
                 
                 item.rate = new_rate
                 item.amount = item.quantity * new_rate
@@ -506,10 +495,8 @@ def project_detail(request, pk):
             messages.success(request, f"Inflation of {rate}% applied successfully.")
             return redirect('project_detail', pk=pk)
 
-        # Handle inflation reversion
         if 'revert_inflation' in request.POST:
             InflationRate.objects.filter(project=project).delete()
-            # Restore original rates
             total_est = Decimal('0')
             for item in items:
                 if item.original_rate:
@@ -553,11 +540,8 @@ def project_detail(request, pk):
         total_cidb += cidb
         total_variance += var
 
-    # also compute actual total for display - FIXED: Don't fall back to estimated cost
     actual_total = project.actual_cost or decimal.Decimal('0')
-    # Remove the fallback to estimated cost when no actuals exist
 
-    # Project-specific charts
     breakdown_chart_data = {
         'labels': ['Costs'],
         'datasets': [
@@ -616,12 +600,10 @@ def adjust_inflation(request, pk):
             messages.error(request, "Invalid inflation factor.")
             return redirect('project_detail', pk=pk)
 
-        # Update every ProjectItem rate & amount
         ProjectItem.objects.filter(project=project).update(
             rate=F('rate') * factor,
             amount=F('amount') * factor
         )
-        # Re-calculate project totals
         agg = ProjectItem.objects.filter(project=project)\
                                  .aggregate(est=Sum('amount'), cidb=Sum('cidb_amount'))
         project.estimated_cost = agg['est'] or decimal.Decimal('0')
@@ -643,7 +625,6 @@ def run_forecast_view(request, pk):
         from estimator.ml_forecast import run_forecast
         forecast_count = run_forecast(pk)
         messages.success(request, f"Forecast generated successfully! Created {forecast_count} predictions.")
-        # Redirect to view the forecast results
         return redirect('view_forecast', pk=pk)
     except Exception as e:
         messages.error(request, f"Forecast failed: {e}")
@@ -656,23 +637,18 @@ def run_forecast_view(request, pk):
 def view_forecast(request, pk):
     project = get_object_or_404(Project, pk=pk)
     
-    # Get forecasts for this project separated by model type
     linear_forecasts = Forecast.objects.filter(project=project, model_type='linear').order_by('material_description')
     rf_forecasts = Forecast.objects.filter(project=project, model_type='random_forest').order_by('material_description')
     
-    # Get data status
     total_quarters = MaterialPrice.objects.values('quarter', 'year').distinct().count()
     project_items = ProjectItem.objects.filter(project=project)
     
-    # Analyze forecastability of each item - FIXED: Check both MaterialPrice and LabourRate
     forecast_analysis = []
     for item in project_items:
-        # Check MaterialPrice first
         material_historical_count = MaterialPrice.objects.filter(
             description__icontains=item.description
         ).count()
         
-        # Check LabourRate if no material found
         labour_historical_count = LabourRate.objects.filter(
             description__icontains=item.description
         ).count()
@@ -690,18 +666,14 @@ def view_forecast(request, pk):
             'status': '✅ Ready' if total_historical_records >= 2 else '❌ Need more data'
         })
     
-    # Prepare forecast data for display - SEPARATED BY MODEL TYPE
     linear_forecast_data = []
     rf_forecast_data = []
     
-    # Process Linear Regression forecasts
     for forecast in linear_forecasts:
-        # Try MaterialPrice first
         current_material = MaterialPrice.objects.filter(
             description__iexact=forecast.material_description.replace('MATERIAL: ', '').replace('LABOUR: ', '')
         ).order_by('-year', '-quarter').first()
         
-        # Try LabourRate if no material found
         current_labour = LabourRate.objects.filter(
             description__iexact=forecast.material_description.replace('MATERIAL: ', '').replace('LABOUR: ', '')
         ).order_by('-year', '-quarter').first()
@@ -736,14 +708,11 @@ def view_forecast(request, pk):
             'data_source': data_source,
         })
     
-    # Process Random Forest forecasts
     for forecast in rf_forecasts:
-        # Try MaterialPrice first
         current_material = MaterialPrice.objects.filter(
             description__iexact=forecast.material_description.replace('MATERIAL: ', '').replace('LABOUR: ', '')
         ).order_by('-year', '-quarter').first()
         
-        # Try LabourRate if no material found
         current_labour = LabourRate.objects.filter(
             description__iexact=forecast.material_description.replace('MATERIAL: ', '').replace('LABOUR: ', '')
         ).order_by('-year', '-quarter').first()
@@ -795,16 +764,13 @@ def view_forecast(request, pk):
 # ----------------------------------------------------------------------
 @login_required
 def export_forecast(request):
-    # Allow QS users to export their own project forecasts, and PM/Admin to export all
     profile = request.user.userprofile
     
     if profile.role in ['qs', 'contractor']:
-        # QS users can only export forecasts for their own projects
         projects = Project.objects.filter(uploaded_by=profile)
         linear_forecasts = Forecast.objects.filter(project__in=projects, model_type='linear')
         rf_forecasts = Forecast.objects.filter(project__in=projects, model_type='random_forest')
     elif profile.role in ['pm', 'developer', 'admin']:
-        # PM/Admin can export all forecasts
         linear_forecasts = Forecast.objects.filter(model_type='linear')
         rf_forecasts = Forecast.objects.filter(model_type='random_forest')
     else:
@@ -815,11 +781,9 @@ def export_forecast(request):
         messages.warning(request, "No forecast data available to export.")
         return redirect('dashboard')
 
-    # Create response
     buffer = BytesIO()
     
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        # Linear Regression data
         linear_data = []
         for f in linear_forecasts:
             linear_data.append({
@@ -835,7 +799,6 @@ def export_forecast(request):
             linear_df = pd.DataFrame(linear_data)
             linear_df.to_excel(writer, sheet_name='Linear_Regression', index=False)
         
-        # Random Forest data
         rf_data = []
         for f in rf_forecasts:
             rf_data.append({
@@ -906,11 +869,9 @@ def export_all(request):
             ]
             df = pd.DataFrame(data)
             
-            # FIX: Clean sheet name to remove invalid Excel characters
             sheet_name = re.sub(r'[\\/*?:[\]]', '', project.name)
-            sheet_name = sheet_name[:31]  # Excel sheet name limit
+            sheet_name = sheet_name[:31]  
             
-            # If sheet name is empty after cleaning, use a default
             if not sheet_name.strip():
                 sheet_name = f"Project_{project.pk}"
                 
@@ -955,25 +916,21 @@ def export_report(request, project_id, format):
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{project.name}_report.pdf"'
         
-        # Use landscape for better table layout
         doc = SimpleDocTemplate(response, pagesize=landscape(letter))
         elements = []
         styles = getSampleStyleSheet()
         
-        # Custom styles
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
             fontSize=16,
             spaceAfter=30,
-            alignment=1,  # Center aligned
+            alignment=1,  
         )
         
-        # Title
         elements.append(Paragraph(f"Project Report: {project.name}", title_style))
         elements.append(Spacer(1, 0.2*inch))
         
-        # Project summary
         summary_data = [
             [Paragraph(f"<b>Estimated Cost:</b> RM {project.estimated_cost:,.2f}", styles['Normal']),
              Paragraph(f"<b>CIDB Benchmark:</b> RM {project.cidb_cost:,.2f}", styles['Normal'])],
@@ -996,12 +953,10 @@ def export_report(request, project_id, format):
         elements.append(summary_table)
         elements.append(Spacer(1, 0.3*inch))
         
-        # Items table - FIXED: Better text wrapping
         table_data = [['Section', 'Description', 'Qty', 'Unit', 'Rate (RM)', 'Amount (RM)', 
                       'CIDB Rate', 'CIDB Amount', 'Variance']]
         
         for i in items:
-            # Truncate section and description to fit better
             section_text = i.section[:15] + '...' if len(i.section) > 15 else i.section
             desc_text = i.description[:20] + '...' if len(i.description) > 20 else i.description
             
@@ -1017,23 +972,21 @@ def export_report(request, project_id, format):
                 f"{(i.amount - (i.cidb_amount or 0)):,.2f}" if i.cidb_amount else '-',
             ])
         
-        # Create table with adjusted column widths for landscape - FIXED widths
         col_widths = [0.8*inch, 1.5*inch, 0.5*inch, 0.5*inch, 0.7*inch, 0.8*inch, 0.7*inch, 0.8*inch, 0.7*inch]
         t = Table(table_data, colWidths=col_widths, repeatRows=1)
         
-        # Table style - FIXED: Better text fitting
         t.setStyle(TableStyle([
             # Header
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 7),  # Smaller font for header
+            ('FONTSIZE', (0, 0), (-1, 0), 7),  
             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
             
             # Data rows
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 6),  # Smaller font for data
+            ('FONTSIZE', (0, 1), (-1, -1), 6),  
             ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f8f9fa')),
             ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
             ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
@@ -1042,7 +995,7 @@ def export_report(request, project_id, format):
             # Grid and text wrapping
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6')),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('WORDWRAP', (0, 0), (-1, -1), True),  # Enable word wrap
+            ('WORDWRAP', (0, 0), (-1, -1), True),  
         ]))
         
         elements.append(t)

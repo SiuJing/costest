@@ -1,4 +1,3 @@
-<!-- templates/estimator/data_status.html -->
 {% extends "estimator/base_dashboard.html" %}
 {% load humanize %}
 
@@ -7,7 +6,6 @@
 {% block content %}
 <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Data Status & Import</h2>
         <div>
             <a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
             <a href="{% url 'force_import_data' %}" class="btn btn-warning">Force Re-import All Data</a>

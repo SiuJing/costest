@@ -1,4 +1,3 @@
-<!-- templates/estimator/view_forecast.html -->
 {% extends "estimator/base_dashboard.html" %}
 {% load humanize %}
 
@@ -392,7 +391,6 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Activate the first tab by default
     var firstTab = new bootstrap.Tab(document.getElementById('linear-tab'));
     firstTab.show();
 });

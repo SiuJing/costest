@@ -1,4 +1,3 @@
-# estimator/models.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
@@ -101,7 +100,6 @@ class Project(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
     file = models.FileField(upload_to='projects/')
     
-    # Project Metadata
     duration_months = models.IntegerField(null=True, blank=True, help_text="Project duration in months")
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
@@ -120,9 +118,8 @@ class Project(models.Model):
 
     def save(self, *args, **kwargs):
         if self.start_date and self.end_date:
-            # Prevent negative duration_days by using absolute value
             delta = self.end_date - self.start_date
-            self.duration_days = max(delta.days, 0)  # Ensure non-negative
+            self.duration_days = max(delta.days, 0)  
         super().save(*args, **kwargs)
 
     def variance_est_cidb(self):
@@ -152,7 +149,7 @@ class ProjectItem(models.Model):
     quantity = models.DecimalField(max_digits=12, decimal_places=3, validators=[MinValueValidator(0)])
     unit = models.CharField(max_length=20)
     rate = models.DecimalField(max_digits=10, decimal_places=2)
-    original_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # NEW: for inflation revert
+    original_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     cidb_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cidb_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
@@ -162,7 +159,6 @@ class ProjectItem(models.Model):
             self.cidb_amount = Decimal('0')
         if self.amount is None:
             self.amount = Decimal('0')
-        # Store original rate on first save
         if not self.original_rate and self.rate:
             self.original_rate = self.rate
         super().save(*args, **kwargs)
@@ -205,9 +201,9 @@ class Forecast(models.Model):
         return f"{self.material_description} - {self.model_type} ({self.quarter} {self.year})"
 
 
-class InflationRate(models.Model):  # NEW MODEL
+class InflationRate(models.Model):  
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    rate = models.DecimalField(max_digits=5, decimal_places=2)   # e.g. 5.00 = 5%
+    rate = models.DecimalField(max_digits=5, decimal_places=2)   
     applied = models.BooleanField(default=False)
     applied_at = models.DateTimeField(null=True, blank=True)
 
