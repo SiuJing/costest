@@ -3,79 +3,263 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Register - CostEst</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - CostEst Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f8f9fa;
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #28a745;
+            --dark: #2c3e50;
         }
-        .auth-card {
-            max-width: 400px;
-            margin: 80px auto;
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        
+        .auth-container {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 450px;
+            width: 100%;
+            margin: 2rem auto;
+        }
+        
+        .auth-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .auth-header h2 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 1.8rem;
+        }
+        
+        .auth-header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .auth-body {
             padding: 2rem;
         }
-        .form-title {
-            text-align: center;
+        
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem;
             font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: #007bff;
+            transition: all 0.3s ease;
         }
-        .switch-link {
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        .auth-links {
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
         }
-        .switch-link a {
-            color: #007bff;
+        
+        .auth-links a {
+            color: var(--primary);
             text-decoration: none;
+            transition: color 0.3s ease;
         }
-        .switch-link a:hover {
+        
+        .auth-links a:hover {
+            color: var(--secondary);
             text-decoration: underline;
+        }
+        
+        .brand-logo {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .alert {
+            border-radius: 8px;
+            border: none;
+            padding: 0.75rem 1rem;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .role-badge {
+            background: #e9ecef;
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .form-select {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
     </style>
 </head>
 <body>
-<div class="auth-card">
-    <h3 class="form-title">🧾 User Registration</h3>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="auth-container">
+                    <!-- Header -->
+                    <div class="auth-header">
+                        <i class="fas fa-user-plus brand-logo"></i>
+                        <h2>Create Account</h2>
+                        <p>Join CostEst Pro to start managing your construction projects</p>
+                    </div>
+                    
+                    <!-- Body -->
+                    <div class="auth-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label class="form-label">Username</label>
-            <input type="text" name="username" class="form-control" placeholder="Enter username" required>
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-user me-2"></i>Username
+                                    </label>
+                                    <input type="text" name="username" class="form-control" placeholder="Choose a username" required>
+                                </div>
+                                
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-envelope me-2"></i>Email Address
+                                    </label>
+                                    <input type="email" name="email" class="form-control" placeholder="your.email@example.com">
+                                </div>
+                                
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-lock me-2"></i>Password
+                                    </label>
+                                    <input type="password" name="password" class="form-control" placeholder="Create a strong password" required>
+                                </div>
+                                
+                                <div class="col-12 mb-4">
+                                    <label class="form-label">
+                                        <i class="fas fa-briefcase me-2"></i>Professional Role
+                                    </label>
+                                    <select name="role" class="form-select" required>
+                                        <option value="">-- Select Your Role --</option>
+                                        <option value="contractor">🏗️ Contractor</option>
+                                        <option value="qs">📐 Quantity Surveyor</option>
+                                        <option value="pm">👨‍💼 Project Manager</option>
+                                        <option value="developer">🏢 Developer</option>
+                                    </select>
+                                    <small class="text-muted">Choose the role that best describes your position</small>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success w-100 mb-3">
+                                <i class="fas fa-user-plus me-2"></i>Create Account
+                            </button>
+                            
+                            <div class="auth-links">
+                                <a href="{% url 'login' %}" class="d-block">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Already have an account? Sign In
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Role Descriptions -->
+                <div class="auth-container mt-3">
+                    <div class="auth-body">
+                        <h5 class="text-center mb-3">🏗️ Professional Roles</h5>
+                        <div class="row text-center">
+                            <div class="col-6 mb-2">
+                                <small class="role-badge">Contractor</small>
+                                <p class="small text-muted mt-1 mb-0">Upload & manage projects</p>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <small class="role-badge">QS</small>
+                                <p class="small text-muted mt-1 mb-0">Cost estimation & analysis</p>
+                            </div>
+                            <div class="col-6">
+                                <small class="role-badge">PM</small>
+                                <p class="small text-muted mt-1 mb-0">Project oversight & tracking</p>
+                            </div>
+                            <div class="col-6">
+                                <small class="role-badge">Developer</small>
+                                <p class="small text-muted mt-1 mb-0">Project development & planning</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="text-center mt-4">
+                    <p class="text-white mb-0">&copy; 2024 CostEst Pro. Advanced Construction Cost Management.</p>
+                    <small class="text-white-50">Professional Edition v2.1</small>
+                </div>
+            </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" name="email" class="form-control" placeholder="Enter email">
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Password</label>
-            <input type="password" name="password" class="form-control" placeholder="Enter password" required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Role</label>
-            <select name="role" class="form-select" required>
-                <option value="">-- Select Role --</option>
-                <option value="contractor">Contractor</option>
-                <option value="qs">Quantity Surveyor</option>
-                <option value="pm">Project Manager</option>
-                <option value="developer">Developer</option>
-            </select>
-        </div>
-        <button type="submit" class="btn btn-success w-100">Register</button>
-    </form>
-
-    <div class="switch-link">
-        Already have an account? <a href="{% url 'login' %}">Login here</a>.
     </div>
-</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('input[name="username"]').focus();
+        });
+        
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const password = document.querySelector('input[name="password"]').value;
+            if (password.length < 6) {
+                alert('Password should be at least 6 characters long');
+                e.preventDefault();
+            }
+        });
+    </script>
 </body>
 </html>
