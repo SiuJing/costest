@@ -69,7 +69,7 @@ python manage.py createsuperuser
 
 python manage.py runserver
 text2. Access the app:
-- Dashboard: http://127.0.0.1:8000/dashboard/
+- User Login: http://127.0.0.1:8000/login
 - Admin: http://127.0.0.1:8000/admin/
 
 ## Usage Guide
